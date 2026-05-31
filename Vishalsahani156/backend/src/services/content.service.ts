@@ -1,4 +1,5 @@
 import crypto from 'node:crypto'
+import { ABOUT_DATA } from '../data/aboutData.js'
 import { prisma } from '../lib/prisma.js'
 import { AppError } from '../utils/errors.js'
 import type { AboutDataDto, ContactSubmitResultDto, FaqItemDto } from '../types/content.js'
@@ -14,8 +15,14 @@ function generateTicketId(): string {
 export const contentService = {
   async getAbout(): Promise<AboutDataDto> {
     const block = await prisma.contentBlock.findUnique({ where: { key: 'about' } })
-    if (!block) throw new AppError('About content not found', 404)
-    return block.payload as unknown as AboutDataDto
+    if (block) return block.payload as unknown as AboutDataDto
+
+    await prisma.contentBlock.upsert({
+      where: { key: 'about' },
+      update: { payload: ABOUT_DATA },
+      create: { key: 'about', payload: ABOUT_DATA },
+    })
+    return ABOUT_DATA
   },
 
   async getFaq(options: { category?: string; query?: string } = {}): Promise<FaqItemDto[]> {
